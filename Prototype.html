@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control de Inventario · Tienda #0452</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1C2430;
+    --ink-soft:#2A3444;
+    --paper:#F3F4F7;
+    --card:#FFFFFF;
+    --line:#E4E6EB;
+    --text:#1C2430;
+    --text-muted:#6B7280;
+    --amber:#D9922E;
+    --amber-soft:#F6E6C9;
+    --amber-ink:#8A5A12;
+    --rust:#B5482A;
+    --rust-soft:#F5DAD2;
+    --green:#3F7D5C;
+    --green-soft:#DCEAE2;
+    --radius:10px;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.num{font-family:'Space Grotesk',sans-serif;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  a{color:inherit;text-decoration:none;}
+  button{font-family:inherit;}
+  svg{display:block;}
+
+  /* ---------- Layout ---------- */
+  .app{
+    display:grid;
+    grid-template-columns:250px 1fr;
+    min-height:100vh;
+  }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    background:var(--ink);
+    color:#EDEFF3;
+    padding:20px 14px;
+    display:flex;
+    flex-direction:column;
+    gap:26px;
+  }
+  .brand-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 6px;
+  }
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand-mark{
+    width:28px;height:28px;border-radius:7px;flex-shrink:0;
+    background:linear-gradient(135deg,var(--amber),var(--rust));
+  }
+  .brand-text{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14.5px;line-height:1.2;}
+  .brand-text span{display:block;font-family:'Inter',sans-serif;font-weight:400;font-size:11px;color:#9AA3B2;margin-top:2px;}
+  .sidebar-close{
+    display:none;
+    background:transparent;border:none;color:#C7CCD6;
+    width:30px;height:30px;border-radius:7px;align-items:center;justify-content:center;cursor:pointer;
+  }
+  .sidebar-close svg{width:18px;height:18px;}
+
+  nav{display:flex;flex-direction:column;gap:2px;}
+  .nav-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:#7C8698;padding:14px 12px 6px;}
+  .nav-label:first-child{padding-top:0;}
+  .nav-item{
+    display:flex;align-items:center;gap:11px;
+    padding:9px 12px;border-radius:8px;
+    font-size:13.5px;font-weight:500;color:#C7CCD6;
+    position:relative;
+  }
+  .nav-item:hover{background:var(--ink-soft);color:#fff;}
+  .nav-item.active{background:var(--ink-soft);color:#fff;box-shadow:inset 3px 0 0 var(--amber);}
+  .nav-icon{width:18px;height:18px;flex-shrink:0;color:#8890A0;}
+  .nav-item:hover .nav-icon,.nav-item.active .nav-icon{color:var(--amber);}
+  .nav-badge{
+    margin-left:auto;background:var(--rust);color:#fff;
+    font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:10px;
+  }
+
+  .sidebar-footer{
+    margin-top:auto;padding:12px 10px;border-top:1px solid #313B4C;
+    display:flex;align-items:center;gap:10px;
+  }
+  .sidebar-footer .avatar{width:30px;height:30px;font-size:11.5px;background:#3A455A;color:#fff;}
+  .sidebar-footer .who{font-size:12px;line-height:1.3;}
+  .sidebar-footer .who strong{display:block;color:#EDEFF3;font-size:12.5px;}
+  .sidebar-footer .who span{color:#8890A0;}
+
+  .backdrop{display:none;position:fixed;inset:0;background:rgba(12,15,20,.45);z-index:40;}
+  .backdrop.show{display:block;}
+
+  .hamburger-btn{
+    display:none;align-items:center;justify-content:center;
+    width:34px;height:34px;border-radius:8px;border:1px solid var(--line);
+    background:var(--card);cursor:pointer;flex-shrink:0;
+  }
+  .hamburger-btn svg{width:18px;height:18px;color:var(--ink);}
+
+  /* ---------- Main ---------- */
+  main{padding:20px 26px 44px;min-width:0;}
+
+  .topbar{
+    display:flex;justify-content:space-between;align-items:flex-start;
+    gap:16px;margin-bottom:22px;flex-wrap:wrap;
+  }
+  .topbar-left{display:flex;gap:12px;align-items:flex-start;}
+  .topbar-title h1{font-size:19px;font-weight:600;margin:0 0 4px;}
+  .topbar-title p{margin:0;color:var(--text-muted);font-size:12.5px;}
+  .topbar-right{display:flex;align-items:center;gap:10px;}
+  .store-pill{
+    background:var(--card);border:1px solid var(--line);border-radius:20px;
+    padding:6px 14px;font-size:12.5px;font-weight:500;display:flex;align-items:center;gap:8px;
+  }
+  .store-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--green);}
+  .icon-btn{
+    position:relative;width:34px;height:34px;border-radius:9px;border:1px solid var(--line);
+    background:var(--card);display:flex;align-items:center;justify-content:center;cursor:pointer;
+  }
+  .icon-btn svg{width:17px;height:17px;color:var(--ink);}
+  .icon-btn .ping{
+    position:absolute;top:-4px;right:-4px;background:var(--rust);color:#fff;
+    font-size:9.5px;font-weight:700;padding:1px 5px;border-radius:8px;
+  }
+  .avatar{width:32px;height:32px;border-radius:50%;background:#DDE1E8;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--ink);flex-shrink:0;}
+
+  /* ---------- Cards / grid ---------- */
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px;}
+  .grid-2{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;}
+
+  .kpi-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .kpi-label{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);font-weight:600;}
+  .kpi-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .kpi-icon svg{width:15px;height:15px;}
+  .kpi-icon.amber{background:var(--amber-soft);color:var(--amber-ink);}
+  .kpi-icon.rust{background:var(--rust-soft);color:var(--rust);}
+  .kpi-icon.ink{background:#E8EAEE;color:var(--ink);}
+  .kpi-value{font-size:30px;font-weight:700;margin:0;}
+  .kpi-context{font-size:12px;color:var(--text-muted);margin-top:6px;}
+  .kpi-context.up{color:var(--rust);}
+  .kpi-context.down{color:var(--green);}
+
+  .progress-track{height:8px;border-radius:6px;background:var(--line);margin-top:12px;position:relative;overflow:visible;}
+  .progress-fill{height:100%;border-radius:6px;background:var(--amber);}
+  .progress-marker{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--rust);}
+  .progress-caption{display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-top:6px;}
+
+  .panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  .panel-head h2{font-size:14px;font-weight:600;margin:0;}
+  .link-btn{font-size:12px;font-weight:600;color:var(--ink);border-bottom:1px solid var(--ink);white-space:nowrap;}
+
+  .list-row{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:11px 2px;border-top:1px solid var(--line);font-size:13px;}
+  .list-row:first-of-type{border-top:none;}
+  .item-name{font-weight:500;display:block;}
+  .item-sub{display:block;font-size:11px;color:var(--text-muted);margin-top:1px;}
+
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap;}
+  .badge.ok{background:var(--green-soft);color:var(--green);}
+  .badge.warn{background:var(--amber-soft);color:var(--amber-ink);}
+  .badge.critical{background:var(--rust-soft);color:var(--rust);}
+  .badge.neutral{background:#E7E9EE;color:#4B5563;}
+
+  .mono-cell{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--text-muted);white-space:nowrap;}
+
+  .reception-status{
+    display:flex;align-items:center;gap:8px;font-size:12.5px;padding:9px 11px;border-radius:8px;
+    background:var(--rust-soft);color:var(--rust);font-weight:500;margin:14px 0 14px;
+  }
+  .reception-status .dot{width:6px;height:6px;border-radius:50%;background:var(--rust);flex-shrink:0;}
+
+  .btn-primary{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;
+    background:var(--ink);color:#fff;border:none;border-radius:8px;padding:11px 16px;
+    font-size:13.5px;font-weight:600;cursor:pointer;
+  }
+  .btn-primary:hover{background:var(--ink-soft);}
+  .btn-secondary{
+    display:inline-flex;align-items:center;justify-content:center;width:100%;
+    background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:8px;
+    padding:10px 16px;font-size:13px;font-weight:600;margin-top:8px;cursor:pointer;
+  }
+  .btn-secondary:hover{border-color:#B7BCC6;}
+  .btn-ghost{
+    border:1px solid var(--line);background:var(--card);border-radius:7px;padding:7px 13px;
+    font-size:12px;font-weight:600;color:var(--ink);cursor:pointer;
+  }
+  .btn-ghost:hover{border-color:#B7BCC6;}
+
+  /* ---------- Page header (non-inicio views) ---------- */
+  .page-head{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:18px;flex-wrap:wrap;}
+  .page-head .actions{display:flex;gap:8px;}
+
+  /* ---------- Toolbar / filters ---------- */
+  .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px;}
+  .search-input{
+    flex:1;min-width:200px;display:flex;align-items:center;gap:8px;
+    background:var(--card);border:1px solid var(--line);border-radius:8px;padding:9px 12px;color:var(--text-muted);
+  }
+  .search-input svg{width:15px;height:15px;flex-shrink:0;}
+  .search-input input{border:none;outline:none;background:transparent;font-family:inherit;font-size:13px;width:100%;color:var(--text);}
+  .chip-group{display:flex;gap:6px;flex-wrap:wrap;}
+  .chip{border:1px solid var(--line);background:var(--card);border-radius:20px;padding:7px 13px;font-size:12.5px;font-weight:500;color:var(--text-muted);cursor:pointer;}
+  .chip.active{background:var(--ink);border-color:var(--ink);color:#fff;}
+
+  /* ---------- Tables ---------- */
+  .table-wrap{overflow-x:auto;}
+  table.data{width:100%;border-collapse:collapse;font-size:13px;}
+  table.data th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);font-weight:600;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;}
+  table.data td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap;}
+  table.data tr:last-child td{border-bottom:none;}
+  table.data tbody tr:hover td{background:#FAFAFB;}
+  .cell-strong{font-weight:500;}
+  .cell-muted{color:var(--text-muted);font-size:12px;}
+
+  /* ---------- Report cards ---------- */
+  .report-card{display:flex;flex-direction:column;gap:10px;height:100%;}
+  .report-card h3{margin:0;font-size:14px;}
+  .report-card p{margin:0;font-size:12.5px;color:var(--text-muted);flex:1;}
+  .report-actions{display:flex;gap:8px;}
+
+  /* ---------- Chart ---------- */
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--text-muted);margin-bottom:14px;}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .legend i{width:8px;height:8px;border-radius:2px;display:inline-block;}
+  .chart-bars{display:flex;align-items:flex-end;gap:14px;height:140px;position:relative;padding:0 4px;}
+  .chart-bars .threshold{position:absolute;left:0;right:0;bottom:75%;border-top:1.5px dashed var(--rust);}
+  .chart-bars .threshold-label{position:absolute;right:2px;bottom:calc(75% + 5px);font-size:10px;color:var(--rust);font-weight:600;background:var(--card);padding:0 4px;}
+  .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;position:relative;}
+  .bar{width:100%;max-width:30px;border-radius:5px 5px 0 0;background:var(--amber);position:relative;}
+  .bar.over{background:var(--rust);}
+  .bar.current{background:var(--ink);}
+  .bar-value{position:absolute;top:-18px;font-size:10.5px;font-weight:600;color:var(--text);white-space:nowrap;left:50%;transform:translateX(-50%);}
+  .chart-labels{display:flex;gap:14px;padding:0 4px;margin-top:8px;}
+  .chart-labels span{flex:1;text-align:center;font-size:11px;color:var(--text-muted);}
+
+  .view{animation:fade .15s ease;}
+  @keyframes fade{from{opacity:0;}to{opacity:1;}}
+
+  :focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;}}
+
+  /* ---------- Responsive: drawer menu ---------- */
+  @media (max-width:880px){
+    .app{grid-template-columns:1fr;}
+    .sidebar{
+      position:fixed;top:0;left:0;height:100vh;width:264px;z-index:50;
+      transform:translateX(-100%);transition:transform .22s ease;
+      box-shadow:2px 0 18px rgba(0,0,0,.18);
+    }
+    .sidebar.open{transform:translateX(0);}
+    .sidebar-close{display:flex;}
+    .hamburger-btn{display:flex;}
+    .kpi-icon{}
+    .grid-3{grid-template-columns:1fr;}
+    .grid-2{grid-template-columns:1fr;}
+  }
+  @media (max-width:520px){
+    main{padding:16px 14px 32px;}
+    .topbar-right{width:100%;justify-content:space-between;}
+  }
+</style>
+</head>
+<body>
+
+<div class="backdrop" id="backdrop"></div>
+
+<div class="app">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="brand-row">
+      <div class="brand">
+        <div class="brand-mark"></div>
+        <div class="brand-text">Control Inventario<span>Sistema de tienda</span></div>
+      </div>
+      <button class="sidebar-close" id="sidebar-close" aria-label="Cerrar menú">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+
+    <nav id="nav">
+      <div class="nav-label">Operación</div>
+      <a class="nav-item active" href="#" data-view="inicio" aria-current="page">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1H9a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h2.5a1 1 0 0 0 1-1v-9"/></svg></span>
+        Inicio
+      </a>
+      <a class="nav-item" href="#" data-view="recepcion">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h11v9H2z"/><path d="M13 10h4l3 3v3h-7z"/><circle cx="6" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/></svg></span>
+        Recepción
+      </a>
+      <a class="nav-item" href="#" data-view="inventario">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5 12 3l9 4.5-9 4.5-9-4.5Z"/><path d="M3 7.5V17l9 4.5 9-4.5V7.5"/><path d="M12 12v9"/></svg></span>
+        Inventario
+      </a>
+      <a class="nav-item" href="#" data-view="alertas">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 14 6 10Z"/><path d="M10 19a2 2 0 0 0 4 0"/></svg></span>
+        Alertas
+        <span class="nav-badge">5</span>
+      </a>
+
+      <div class="nav-label">Control</div>
+      <a class="nav-item" href="#" data-view="reportes">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10"/><path d="M11 20V4"/><path d="M18 20v-7"/></svg></span>
+        Reportes
+      </a>
+      <a class="nav-item" href="#" data-view="auditoria">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3.5h6v2H9z"/><path d="m9 13 2 2 4-4"/></svg></span>
+        Auditoría
+      </a>
+      <a class="nav-item" href="#" data-view="usuarios">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><circle cx="17.5" cy="9" r="2.4"/><path d="M15.7 12.3A4.6 4.6 0 0 1 20.5 20"/></svg></span>
+        Usuarios
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="avatar">AP</div>
+      <div class="who"><strong>Ana Pérez</strong><span>Gerente de tienda</span></div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger-btn" id="hamburger-btn" aria-label="Abrir menú" aria-expanded="false" aria-controls="sidebar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+        <div class="topbar-title">
+          <h1 id="page-title">Resumen del día</h1>
+          <p id="page-sub">Lunes 24 de agosto · actualizado hace 3 minutos</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="store-pill"><span class="dot"></span>Tienda #0452 · Iztapalapa</div>
+        <button class="icon-btn" id="bell-btn" aria-label="Ver alertas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 14 6 10Z"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>
+          <span class="ping">5</span>
+        </button>
+        <div class="avatar">AP</div>
+      </div>
+    </div>
+
+    <!-- ===================== INICIO ===================== -->
+    <section class="view" id="view-inicio">
+      <div class="grid-3">
+        <div class="card">
+          <div class="kpi-head">
+            <span class="kpi-label">Merma del mes</span>
+            <span class="kpi-icon amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10"/><path d="M11 20V4"/><path d="M18 20v-7"/></svg></span>
+          </div>
+          <p class="kpi-value">2.1%</p>
+          <div class="progress-track">
+            <div class="progress-fill" style="width:70%"></div>
+            <div class="progress-marker" style="left:75%"></div>
+          </div>
+          <div class="progress-caption"><span>0%</span><span>Meta máx. 3.0%</span></div>
+          <p class="kpi-context down">-0.4 pts vs. mes anterior</p>
+        </div>
+
+        <div class="card">
+          <div class="kpi-head">
+            <span class="kpi-label">SKUs bajo punto de reorden</span>
+            <span class="kpi-icon amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5 12 3l9 4.5-9 4.5-9-4.5Z"/><path d="M3 7.5V17l9 4.5 9-4.5V7.5"/></svg></span>
+          </div>
+          <p class="kpi-value">14</p>
+          <p class="kpi-context up">+3 productos esta semana</p>
+        </div>
+
+        <div class="card">
+          <div class="kpi-head">
+            <span class="kpi-label">Discrepancias pendientes</span>
+            <span class="kpi-icon rust"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h11v9H2z"/><path d="M13 10h4l3 3v3h-7z"/></svg></span>
+          </div>
+          <p class="kpi-value">3</p>
+          <p class="kpi-context">Requieren revisión antes del cierre</p>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="panel-head">
+            <h2>Alertas de reabastecimiento</h2>
+            <a class="link-btn" href="#" data-view="alertas">Ver todas</a>
+          </div>
+          <div class="list-row">
+            <div><span class="item-name">Detergente líquido 1 L</span><span class="item-sub mono">SKU 041-2201</span></div>
+            <span class="badge critical">Stock 4</span>
+            <span class="mono-cell">Reorden 20</span>
+          </div>
+          <div class="list-row">
+            <div><span class="item-name">Papel higiénico 4 pz</span><span class="item-sub mono">SKU 018-0947</span></div>
+            <span class="badge warn">Stock 6</span>
+            <span class="mono-cell">Reorden 15</span>
+          </div>
+          <div class="list-row">
+            <div><span class="item-name">Cereal en caja 500 g</span><span class="item-sub mono">SKU 077-3305</span></div>
+            <span class="badge critical">Stock 2</span>
+            <span class="mono-cell">Reorden 12</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="panel-head">
+            <h2>Última recepción</h2>
+            <a class="link-btn" href="#" data-view="recepcion">Ver detalle</a>
+          </div>
+          <p class="mono" style="font-size:13px;font-weight:500;margin:0;">Camión #A-118</p>
+          <p class="kpi-context" style="margin-top:4px;">Hoy, 09:14 h · 34 líneas escaneadas</p>
+          <div class="reception-status"><span class="dot"></span>2 discrepancias fuera de tolerancia</div>
+          <button class="btn-primary" onclick="showView('recepcion')">+ Registrar nueva recepción</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== RECEPCIÓN ===================== -->
+    <section class="view" id="view-recepcion" hidden>
+      <div class="page-head">
+        <div class="actions">
+          <button class="btn-ghost">Historial de recepciones</button>
+        </div>
+        <button class="btn-ghost" style="background:var(--ink);color:#fff;border-color:var(--ink);">+ Nueva recepción</button>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <span class="kpi-label">Cajas esperadas</span>
+          <p class="kpi-value" style="font-size:26px;margin-top:8px;">172</p>
+        </div>
+        <div class="card">
+          <span class="kpi-label">Cajas escaneadas</span>
+          <p class="kpi-value" style="font-size:26px;margin-top:8px;">166</p>
+        </div>
+        <div class="card">
+          <span class="kpi-label">Diferencia</span>
+          <p class="kpi-value" style="font-size:26px;margin-top:8px;color:var(--rust);">-6 (3.5%)</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="panel-head">
+          <h2>Camión #A-118 · hoy, 09:14 h</h2>
+          <span class="badge neutral">Mostrando 5 de 34 líneas</span>
+        </div>
+        <div class="table-wrap">
+          <table class="data">
+            <thead>
+              <tr><th>Producto</th><th>SKU</th><th>Esperado</th><th>Escaneado</th><th>Diferencia</th><th>Estado</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="cell-strong">Detergente líquido 1 L</td><td class="mono-cell">041-2201</td><td>40</td><td>40</td><td>0</td><td><span class="badge ok">Conciliado</span></td></tr>
+              <tr><td class="cell-strong">Papel higiénico 4 pz</td><td class="mono-cell">018-0947</td><td>30</td><td>30</td><td>0</td><td><span class="badge ok">Conciliado</span></td></tr>
+              <tr><td class="cell-strong">Refresco de cola 600 ml</td><td class="mono-cell">052-1180</td><td>60</td><td>59</td><td>-1</td><td><span class="badge neutral">Dentro de tolerancia</span></td></tr>
+              <tr><td class="cell-strong">Cereal en caja 500 g</td><td class="mono-cell">077-3305</td><td>24</td><td>22</td><td>-2</td><td><span class="badge critical">Discrepancia mayor</span></td></tr>
+              <tr><td class="cell-strong">Pilas AA paquete 2</td><td class="mono-cell">090-4471</td><td>18</td><td>15</td><td>-3</td><td><span class="badge critical">Discrepancia mayor</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== INVENTARIO ===================== -->
+    <section class="view" id="view-inventario" hidden>
+      <div class="toolbar">
+        <div class="search-input">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" placeholder="Buscar por producto o SKU">
+        </div>
+        <div class="chip-group">
+          <button class="chip active">Todos</button>
+          <button class="chip">Crítico</button>
+          <button class="chip">Bajo</button>
+          <button class="chip">Normal</button>
+          <button class="chip">Agotado</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table class="data">
+            <thead>
+              <tr><th>SKU</th><th>Producto</th><th>Categoría</th><th>Stock actual</th><th>Punto reorden</th><th>Estado</th><th>Actualizado</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="mono-cell">041-2201</td><td class="cell-strong">Detergente líquido 1 L</td><td class="cell-muted">Limpieza</td><td>4</td><td>20</td><td><span class="badge critical">Crítico</span></td><td class="cell-muted">Hace 2 min</td></tr>
+              <tr><td class="mono-cell">018-0947</td><td class="cell-strong">Papel higiénico 4 pz</td><td class="cell-muted">Hogar</td><td>6</td><td>15</td><td><span class="badge warn">Bajo</span></td><td class="cell-muted">Hace 2 min</td></tr>
+              <tr><td class="mono-cell">077-3305</td><td class="cell-strong">Cereal en caja 500 g</td><td class="cell-muted">Alimentos</td><td>2</td><td>12</td><td><span class="badge critical">Crítico</span></td><td class="cell-muted">Hace 2 min</td></tr>
+              <tr><td class="mono-cell">052-1180</td><td class="cell-strong">Refresco de cola 600 ml</td><td class="cell-muted">Bebidas</td><td>59</td><td>40</td><td><span class="badge ok">Normal</span></td><td class="cell-muted">Hace 5 min</td></tr>
+              <tr><td class="mono-cell">090-4471</td><td class="cell-strong">Pilas AA paquete 2</td><td class="cell-muted">Electrónica</td><td>15</td><td>20</td><td><span class="badge warn">Bajo</span></td><td class="cell-muted">Hace 5 min</td></tr>
+              <tr><td class="mono-cell">033-8820</td><td class="cell-strong">Shampoo 400 ml</td><td class="cell-muted">Cuidado personal</td><td>48</td><td>18</td><td><span class="badge ok">Normal</span></td><td class="cell-muted">Ayer</td></tr>
+              <tr><td class="mono-cell">061-2290</td><td class="cell-strong">Toallas de papel 2 pz</td><td class="cell-muted">Hogar</td><td>0</td><td>10</td><td><span class="badge neutral" style="background:#26303F;color:#fff;">Agotado</span></td><td class="cell-muted">Ayer</td></tr>
+              <tr><td class="mono-cell">014-5567</td><td class="cell-strong">Galletas surtido 200 g</td><td class="cell-muted">Alimentos</td><td>26</td><td>15</td><td><span class="badge ok">Normal</span></td><td class="cell-muted">Ayer</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== ALERTAS ===================== -->
+    <section class="view" id="view-alertas" hidden>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="panel-head"><h2>Reabastecimiento</h2><span class="badge warn">3 productos</span></div>
+        <div class="list-row">
+          <div><span class="item-name">Detergente líquido 1 L</span><span class="item-sub mono">SKU 041-2201</span></div>
+          <span class="badge critical">Stock 4</span>
+          <span class="mono-cell">Reorden 20</span>
+        </div>
+        <div class="list-row">
+          <div><span class="item-name">Papel higiénico 4 pz</span><span class="item-sub mono">SKU 018-0947</span></div>
+          <span class="badge warn">Stock 6</span>
+          <span class="mono-cell">Reorden 15</span>
+        </div>
+        <div class="list-row">
+          <div><span class="item-name">Cereal en caja 500 g</span><span class="item-sub mono">SKU 077-3305</span></div>
+          <span class="badge critical">Stock 2</span>
+          <span class="mono-cell">Reorden 12</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="panel-head"><h2>Discrepancias abiertas</h2><span class="badge critical">2 pendientes</span></div>
+        <div class="table-wrap">
+          <table class="data">
+            <thead>
+              <tr><th>Producto</th><th>Origen</th><th>Diferencia</th><th>Severidad</th><th>Acción pendiente</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="cell-strong">Cereal en caja 500 g</td><td class="cell-muted">Camión #A-118</td><td>-2 (8.3%)</td><td><span class="badge critical">Mayor</span></td><td class="cell-muted">Revisión del gerente</td></tr>
+              <tr><td class="cell-strong">Pilas AA paquete 2</td><td class="cell-muted">Camión #A-118</td><td>-3 (16.7%)</td><td><span class="badge critical">Mayor</span></td><td class="cell-muted">Notificado a auditoría corporativa</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== REPORTES ===================== -->
+    <section class="view" id="view-reportes" hidden>
+      <div class="grid-2" style="margin-bottom:16px;">
+        <div class="card report-card">
+          <h3>Reporte de merma mensual</h3>
+          <p>Porcentaje de merma por tienda y periodo, con desglose por causa (robo, daño, discrepancia de recepción).</p>
+          <div class="report-actions">
+            <button class="btn-ghost">Exportar CSV</button>
+            <button class="btn-ghost">Exportar PDF</button>
+          </div>
+        </div>
+        <div class="card report-card">
+          <h3>Comparativo de inventario</h3>
+          <p>Inventario esperado contra inventario real por tienda, para auditoría corporativa.</p>
+          <div class="report-actions">
+            <button class="btn-ghost">Exportar CSV</button>
+            <button class="btn-ghost">Exportar PDF</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="panel-head"><h2>Tendencia de merma · Tienda #0452</h2></div>
+        <div class="legend">
+          <span><i style="background:var(--amber);"></i>Dentro de meta</span>
+          <span><i style="background:var(--rust);"></i>Excede meta (&gt;3.0%)</span>
+          <span><i style="background:var(--ink);"></i>Mes actual</span>
+        </div>
+        <div class="chart-bars">
+          <div class="threshold"></div>
+          <div class="threshold-label">Meta 3.0%</div>
+          <div class="bar-col"><span class="bar-value">2.6%</span><div class="bar" style="height:65%"></div></div>
+          <div class="bar-col"><span class="bar-value">2.9%</span><div class="bar" style="height:72.5%"></div></div>
+          <div class="bar-col"><span class="bar-value">3.4%</span><div class="bar over" style="height:85%"></div></div>
+          <div class="bar-col"><span class="bar-value">2.8%</span><div class="bar" style="height:70%"></div></div>
+          <div class="bar-col"><span class="bar-value">2.3%</span><div class="bar" style="height:57.5%"></div></div>
+          <div class="bar-col"><span class="bar-value">2.1%</span><div class="bar current" style="height:52.5%"></div></div>
+        </div>
+        <div class="chart-labels">
+          <span>Mar</span><span>Abr</span><span>May</span><span>Jun</span><span>Jul</span><span>Ago</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== AUDITORÍA ===================== -->
+    <section class="view" id="view-auditoria" hidden>
+      <div class="page-head">
+        <p class="kpi-context" style="margin:0;">Conteos físicos programados y su conciliación contra el inventario del sistema.</p>
+        <button class="btn-ghost" style="background:var(--ink);color:#fff;border-color:var(--ink);">+ Iniciar conteo físico</button>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table class="data">
+            <thead>
+              <tr><th>Fecha</th><th>Tienda</th><th>SKUs auditados</th><th>Diferencia detectada</th><th>Estado</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="cell-strong">12 ago 2026</td><td class="cell-muted">Tienda #0452</td><td>320</td><td>-1.8%</td><td><span class="badge ok">Cerrada</span></td></tr>
+              <tr><td class="cell-strong">15 jul 2026</td><td class="cell-muted">Tienda #0452</td><td>310</td><td>-2.4%</td><td><span class="badge ok">Cerrada</span></td></tr>
+              <tr><td class="cell-strong">18 jun 2026</td><td class="cell-muted">Tienda #0452</td><td>305</td><td>-3.1%</td><td><span class="badge warn">En revisión</span></td></tr>
+              <tr><td class="cell-strong">20 may 2026</td><td class="cell-muted">Tienda #0452</td><td>298</td><td>-2.0%</td><td><span class="badge ok">Cerrada</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== USUARIOS ===================== -->
+    <section class="view" id="view-usuarios" hidden>
+      <div class="page-head">
+        <p class="kpi-context" style="margin:0;">Accesos y roles para la tienda y para corporativo.</p>
+        <button class="btn-ghost" style="background:var(--ink);color:#fff;border-color:var(--ink);">+ Invitar usuario</button>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table class="data">
+            <thead>
+              <tr><th>Usuario</th><th>Rol</th><th>Tienda</th><th>Estado</th><th>Último acceso</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="cell-strong">Ana Pérez</td><td class="cell-muted">Gerente de tienda</td><td class="cell-muted">Tienda #0452</td><td><span class="badge ok">Activo</span></td><td class="cell-muted">Hoy, 09:20</td></tr>
+              <tr><td class="cell-strong">Luis Gómez</td><td class="cell-muted">Encargado de recepción</td><td class="cell-muted">Tienda #0452</td><td><span class="badge ok">Activo</span></td><td class="cell-muted">Hoy, 09:05</td></tr>
+              <tr><td class="cell-strong">Carla Ruiz</td><td class="cell-muted">Auditor corporativo</td><td class="cell-muted">Corporativo</td><td><span class="badge ok">Activo</span></td><td class="cell-muted">Ayer, 17:40</td></tr>
+              <tr><td class="cell-strong">Jorge Nava</td><td class="cell-muted">Administrador del sistema</td><td class="cell-muted">Corporativo</td><td><span class="badge ok">Activo</span></td><td class="cell-muted">Hace 3 días</td></tr>
+              <tr><td class="cell-strong">Marta Solís</td><td class="cell-muted">Encargado de recepción</td><td class="cell-muted">Tienda #0452</td><td><span class="badge neutral">Inactivo</span></td><td class="cell-muted">Hace 40 días</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  var meta = {
+    inicio:     {title:'Resumen del día', sub:'Lunes 24 de agosto · actualizado hace 3 minutos'},
+    recepcion:  {title:'Recepción de mercancía', sub:'Registro y conciliación de entregas de camiones repartidores'},
+    inventario: {title:'Inventario', sub:'Consulta de existencias por SKU y tienda'},
+    alertas:    {title:'Alertas', sub:'Reabastecimiento y discrepancias que requieren atención'},
+    reportes:   {title:'Reportes', sub:'Merma y comparativo de inventario esperado vs. real'},
+    auditoria:  {title:'Auditoría', sub:'Conteos físicos y conciliación con el inventario del sistema'},
+    usuarios:   {title:'Usuarios', sub:'Gestión de accesos y roles del sistema'}
+  };
+
+  var views = document.querySelectorAll('.view');
+  var navItems = document.querySelectorAll('.nav-item[data-view]');
+  var pageTitle = document.getElementById('page-title');
+  var pageSub = document.getElementById('page-sub');
+  var sidebar = document.getElementById('sidebar');
+  var backdrop = document.getElementById('backdrop');
+  var hamburger = document.getElementById('hamburger-btn');
+  var sidebarClose = document.getElementById('sidebar-close');
+  var bellBtn = document.getElementById('bell-btn');
+
+  function showView(name){
+    views.forEach(function(v){ v.hidden = (v.id !== 'view-' + name); });
+    navItems.forEach(function(n){
+      var isActive = n.dataset.view === name;
+      n.classList.toggle('active', isActive);
+      if(isActive){ n.setAttribute('aria-current','page'); } else { n.removeAttribute('aria-current'); }
+    });
+    if(meta[name]){
+      pageTitle.textContent = meta[name].title;
+      pageSub.textContent = meta[name].sub;
+    }
+    window.scrollTo(0,0);
+    closeDrawer();
+  }
+
+  document.querySelectorAll('[data-view]').forEach(function(el){
+    el.addEventListener('click', function(e){
+      e.preventDefault();
+      showView(el.dataset.view);
+    });
+  });
+
+  bellBtn.addEventListener('click', function(){ showView('alertas'); });
+
+  function openDrawer(){
+    sidebar.classList.add('open');
+    backdrop.classList.add('show');
+    hamburger.setAttribute('aria-expanded','true');
+  }
+  function closeDrawer(){
+    sidebar.classList.remove('open');
+    backdrop.classList.remove('show');
+    hamburger.setAttribute('aria-expanded','false');
+  }
+  hamburger.addEventListener('click', function(){
+    sidebar.classList.contains('open') ? closeDrawer() : openDrawer();
+  });
+  sidebarClose.addEventListener('click', closeDrawer);
+  backdrop.addEventListener('click', closeDrawer);
+
+  document.querySelectorAll('.chip').forEach(function(chip){
+    chip.addEventListener('click', function(){
+      chip.parentElement.querySelectorAll('.chip').forEach(function(c){ c.classList.remove('active'); });
+      chip.classList.add('active');
+    });
+  });
+</script>
+
+</body>
+</html>
